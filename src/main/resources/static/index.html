@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Search</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h2>Search Flights</h2>
+
+
+    <label>Source: <input type="text" id="source" value="DEL"></label><br>
+    <label>Destination: <input type="text" id="destination" value="BOM"></label><br>
+    <label>Date: <input type="date" id="date"></label><br>
+    <label>Adults: <input type="number" id="adult" value="1" min="1"></label><br>
+    <label>Children: <input type="number" id="child" value="0" min="0"></label><br>
+    <label>Infants: <input type="number" id="infant" value="0" min="0"></label><br>
+
+
+    <button onclick="searchFlights()">Search Flights</button>
+
+
+    <h3>Results:</h3>
+    <pre id="results"></pre>
+
+
+    <script>
+        function searchFlights() {
+            $.ajax({
+                url: "http://localhost:8080/tomartravels/flights",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    source: $("#source").val(),
+                    destination: $("#destination").val(),
+                    date: $("#date").val(),
+                    adult: $("#adult").val(),
+                    child: $("#child").val(),
+                    infant: $("#infant").val()
+                }),
+                success: function(response) {
+                    if (response.length > 0) {
+                        sessionStorage.setItem("flightResults", JSON.stringify(response));
+                        window.location.href = "results.html"; 
+                    } else {
+                        alert("No flights found.");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", xhr.responseText);
+                    $("#results").text("Error: " + xhr.responseText);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

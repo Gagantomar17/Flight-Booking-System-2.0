@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Results</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h2>Available Flights</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Carrier</th>
+                <th>Flight No</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Departure</th>
+                <th>Arrival</th>
+                <th>Price</th>
+                <th>Seats</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="flightTable"></tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            let flights = JSON.parse(sessionStorage.getItem("flightResults"));
+            console.log("Raw sessionStorage data:", flights);
+            
+            if (!flights || flights.length === 0) {
+                $("#flightTable").append("<tr><td colspan='8'>No flights found</td></tr>");
+                return;
+            }
+
+            flights.forEach((flight, index) => {
+                $("#flightTable").append(`
+                    <tr>
+                        <td>${flight.flightDetail.carrierCode}</td>
+                        <td>${flight.flightDetail.flightNo}</td>
+                        <td>${flight.flightDetail.src}</td>
+                        <td>${flight.flightDetail.dest}</td>
+                        <td>${flight.flightDetail.depTime}</td>
+                        <td>${flight.flightDetail.arrTime}</td>
+                        <td>${flight.flightDetail.price}</td>
+                        <td>${flight.flightDetail.avalSeats}</td>
+                        <td><button onclick="bookFlight(${index})">Book</button></td>
+                    </tr>
+                `);
+            });
+        });
+
+        function bookFlight(index) {
+            let flights = JSON.parse(sessionStorage.getItem("flightResults"));
+            let selectedFlight = flights[index];
+
+            // Extract details for the reprice call
+            let responseBody = selectedFlight.requestBody;  // Flight response JSON
+            alert("response body " + responseBody);
+            let beforePrice = selectedFlight.flightDetail.price;
+            alert("price " + beforePrice);
+
+            let data = {
+                responseBody: responseBody,
+                beforePrice: beforePrice
+            }
+
+             // Make AJAX POST request to reprice API
+             $.ajax({
+                type: "POST",
+                url: "http://localhost:8080/tomartravels/booking",
+                contentType: "application/json",
+                data: JSON.stringify(data) ,
+                success: function(response) {
+                    console.log("Response received:", response);
+                    alert("Raw response: " + response);
+                    if (response === "bookFlights") {
+                        alert("Proceeding to booking.");
+                        sessionStorage.setItem("selectedFlight", JSON.stringify(selectedFlight));
+                        window.location.href = "booking.html";
+                    } else if(response === "repriceFlights"){
+                        
+                        alert("Price has changed! Redirecting to reprice page.");
+                        window.location.href = "reprice.html";
+                    }else{
+                        alert("Nothing is returning ")
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error:", status, error);
+                    alert("Error occurred while repricing.");
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
