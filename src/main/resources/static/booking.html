@@ -3,9 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Traveller Booking</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <h2>Booking Page</h2>
+
+<h2>Traveller Booking Form</h2>
+
+<form id="bookingForm">
+    <label for="id">Traveller ID:</label>
+    <input type="text" id="id" name="id" required><br><br>
+
+    <label for="dateOfBirth">Date of Birth:</label>
+    <input type="date" id="dateOfBirth" name="dateOfBirth" required><br><br>
+
+    <label for="gender">Gender:</label>
+    <input type="text" id="gender" name="gender" required><br><br>
+
+    <label for="firstName">First Name:</label>
+    <input type="text" id="firstName" name="firstName" required><br><br>
+
+    <label for="lastName">Last Name:</label>
+    <input type="text" id="lastName" name="lastName" required><br><br>
+
+    <label for="emailAddress">Email Address:</label>
+    <input type="email" id="emailAddress" name="emailAddress" required><br><br>
+
+    <label for="countryCallingCode">Country Calling Code:</label>
+    <input type="text" id="countryCallingCode" name="countryCallingCode" required><br><br>
+
+    <label for="number">Number:</label>
+    <input type="text" id="number" name="number" required><br><br>
+
+    <label for="passportNumber">Passport Number:</label>
+    <input type="text" id="passportNumber" name="passportNumber" required><br><br>
+
+    <label for="birthPlace">Birth Place:</label>
+    <input type="text" id="birthPlace" name="birthPlace" required><br><br>
+
+    <label for="issuanceLocation">Issuance Location:</label>
+    <input type="text" id="issuanceLocation" name="issuanceLocation" required><br><br>
+
+    <label for="issuanceDate">Issuance Date:</label>
+    <input type="date" id="issuanceDate" name="issuanceDate" required><br><br>
+
+    <label for="expiryDate">Expiry Date:</label>
+    <input type="date" id="expiryDate" name="expiryDate" required><br><br>
+
+    <label for="issuanceCountry">Issuance Country:</label>
+    <input type="text" id="issuanceCountry" name="issuanceCountry" required><br><br>
+
+    <label for="validityCountry">Validity Country:</label>
+    <input type="text" id="validityCountry" name="validityCountry" required><br><br>
+
+    <label for="nationality">Nationality:</label>
+    <input type="text" id="nationality" name="nationality" required><br><br>
+
+    <button type="button" onclick="submitBooking()">Book Now</button>
+</form>
+
+<script>
+    function submitBooking() {
+
+    let repriceResponse = sessionStorage.getItem("repriceResponse");
+    if (repriceResponse) {
+        repriceResponse = JSON.parse(repriceResponse);
+        alert("REPRICE RESPONSE ." + repriceResponse);
+        console.log("reprice response found");
+    } else {
+        console.warn("No reprice response found in sessionStorage.");
+        return;
+    }
+
+    let traveller = [{
+    id: $("#id").val(),
+    dateOfBirth: $("#dateOfBirth").val(),
+    name: {
+        firstName: $("#firstName").val(),
+        lastName: $("#lastName").val()
+    },
+    gender: $("#gender").val(),
+    contact: {
+        emailAddress: $("#emailAddress").val(),
+        phones: [
+            {
+                deviceType: "MOBILE",
+                countryCallingCode: $("#countryCallingCode").val(),
+                number: $("#number").val()
+            }
+        ]
+    },
+    documents: [
+        {
+            documentType: "PASSPORT",
+            birthPlace: $("#birthPlace").val(),
+            issuanceLocation: $("#issuanceLocation").val(),
+            issuanceDate: $("#issuanceDate").val(),
+            number: $("#passportNumber").val(),
+            expiryDate: $("#expiryDate").val(),
+            issuanceCountry: $("#issuanceCountry").val(),
+            validityCountry: $("#validityCountry").val(),
+            nationality: $("#nationality").val(),
+            holder: true
+        }
+    ]
+    }];
+
+    let agent = [{
+    addresseeName: {
+        firstName: "GAGAN",
+        lastName: "TOMAR"
+    },
+    companyName: "Amadeus",
+    purpose: "STANDARD",
+    phones: [
+        {
+            deviceType: "MOBILE",
+            countryCallingCode: "91",
+            number: "8171406498"
+        }
+    ],
+    emailAddress: "gagan.tomar444@gmail.com",
+    address: {
+        lines: ["Rohini North West Delhi"],
+        postalCode: "110085",
+        cityName: "Delhi",
+        countryCode: "IN"
+    }
+    }];
+
+
+        let requestData = {
+            travellerDetails: traveller,
+            agentDetails: agent,
+            repriceDetails: repriceResponse
+        };
+
+        $.ajax({
+            url: "http://localhost:8080/tomartravels/bookTraveller",  // Replace with your backend endpoint
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                sessionStorage.setItem("bookingResponse", response);
+                window.location.href = "orderPage.html";
+            },
+            error: function(xhr, status, error) {
+                console.error("Error:", error);
+            }
+        });
+    }
+</script>
+
 </body>
 </html>

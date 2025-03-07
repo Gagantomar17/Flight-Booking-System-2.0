@@ -17,7 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -55,7 +57,7 @@ public class AmadeusAPI {
         JSONObject responseObj = new JSONObject() ;
        
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            // Obtain the access token using POST request
+
             HttpPost post = new HttpPost(oath_url);
             post.addHeader("Content-Type", "application/x-www-form-urlencoded");
             StringEntity entity = new StringEntity("grant_type=client_credentials&client_id="+client_id+"&client_secret="+client_secret);
@@ -68,13 +70,10 @@ public class AmadeusAPI {
                 if (!tokenJsonObject.has("access_token")) {
                     throw new RuntimeException("Access token not found in response: " + tokenJsonResponse);
                 }
+
                 accessToken = tokenJsonObject.getString("access_token");
-
-
                 System.out.println("Here is access token " + accessToken) ;
 
-
-                // Use the access token to fetch flight offers
                 HttpGet flightRequest = new HttpGet("https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode="+source+"&destinationLocationCode="+destination+"&departureDate="+date+"&adults="+adult+"&children="+child+"&infants="+infant+"&nonStop=true&max=250");
                 flightRequest.addHeader("Authorization", "Bearer " + accessToken);
                 flightRequest.addHeader("Accept", "application/vnd.amadeus+json");
@@ -83,7 +82,7 @@ public class AmadeusAPI {
                 try (CloseableHttpResponse flightResponse = httpClient.execute(flightRequest)) {
                     responseBody = EntityUtils.toString(flightResponse.getEntity());
                     responseObj = new JSONObject(responseBody);
-                    //System.out.println("Flight Offers Response: " + responseBody);
+                    System.out.println("Flight Offers Response: " + responseBody);
                 }
             } catch (Exception e){
                 e.printStackTrace();
@@ -99,7 +98,6 @@ public class AmadeusAPI {
     public List<FlightWrapper> responseParsing(String responseBody){
         ObjectMapper objectMapper = new ObjectMapper();
         List<FlightWrapper> flights = new ArrayList<>();
-        //List<flight_detail> flights = new ArrayList<>();
         try{
             JsonNode rootNode = objectMapper.readTree(responseBody); // complete api response
             JsonNode dataArray = rootNode.get("data"); // it contains the flights data 
@@ -248,6 +246,62 @@ public class AmadeusAPI {
         return false ;
     }
 
+    public String orderReqBody(String requestData) {
+        JSONObject requestBody = new JSONObject();
 
+        JSONObject requestDataJson = new JSONObject(requestData);
+        JSONArray travellersArray = requestDataJson.getJSONArray("travellerDetails");
+        JSONArray contactsArray = requestDataJson.getJSONArray("agentDetails");
+        JSONArray flightOfferArray = requestDataJson.getJSONObject("repriceDetails").getJSONObject("data").getJSONArray("flightOffers");
+
+        // Create data object
+        JSONObject data = new JSONObject();
+        data.put("type", "flight-order");
+        data.put("flightOffers", flightOfferArray);
+        data.put("travelers", travellersArray);
+        data.put("contacts", contactsArray);
+
+        // Adding remarks
+        JSONObject remarks = new JSONObject();
+        JSONObject general = new JSONObject();
+        general.put("subType", "GENERAL_MISCELLANEOUS");
+        general.put("text", "ONLINE BOOKING FROM Tomar Travel Pvt Ltd");
+        JSONArray generalArray = new JSONArray();
+        generalArray.put(general);
+        remarks.put("general", generalArray);
+        data.put("remarks", remarks);
+
+        // Adding ticketingAgreement
+        JSONObject ticketingAgreement = new JSONObject();
+        ticketingAgreement.put("option", "DELAY_TO_CANCEL");
+        ticketingAgreement.put("delay", "6D");
+        data.put("ticketingAgreement", ticketingAgreement);
+
+        // Final request body
+        requestBody.put("data", data);
+
+        return requestBody.toString();
+    }
+
+    public String bookFlight(String reqBody){
+        String bookingResponse = "null" ;
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(booking_url);
+            post.addHeader("Authorization", "Bearer " + accessToken);
+            post.addHeader("Content-Type", "application/json");
+            post.setEntity(new StringEntity(reqBody));
+
+            try (CloseableHttpResponse httpResponse = httpClient.execute(post) ) {
+                bookingResponse = EntityUtils.toString(httpResponse.getEntity()) ;
+            } catch (Exception e) {
+                e.printStackTrace();
+                bookingResponse = "Booking error : " + e.getMessage() ;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            bookingResponse = "booking order error : " + e.getLocalizedMessage();
+        }
+        return bookingResponse ;
+    }
 }
 

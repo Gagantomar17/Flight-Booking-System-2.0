@@ -56,7 +56,6 @@
             let flights = JSON.parse(sessionStorage.getItem("flightResults"));
             let selectedFlight = flights[index];
 
-            // Extract details for the reprice call
             let responseBody = selectedFlight.requestBody;  // Flight response JSON
             alert("response body " + responseBody);
             let beforePrice = selectedFlight.flightDetail.price;
@@ -67,7 +66,6 @@
                 beforePrice: beforePrice
             }
 
-             // Make AJAX POST request to reprice API
              $.ajax({
                 type: "POST",
                 url: "http://localhost:8080/tomartravels/booking",
@@ -76,16 +74,16 @@
                 success: function(response) {
                     console.log("Response received:", response);
                     alert("Raw response: " + response);
-                    if (response === "bookFlights") {
+                    if (response.status === "bookFlights") {
                         alert("Proceeding to booking.");
-                        sessionStorage.setItem("selectedFlight", JSON.stringify(selectedFlight));
+                        sessionStorage.setItem("repriceResponse", response.repriceResponse);
                         window.location.href = "booking.html";
-                    } else if(response === "repriceFlights"){
+                    } else if(response.status === "repriceFlights"){
                         
                         alert("Price has changed! Redirecting to reprice page.");
                         window.location.href = "reprice.html";
                     }else{
-                        alert("Nothing is returning ")
+                        alert("Unexpected response from server.");
                     }
                 },
                 error: function(xhr, status, error) {

@@ -1,20 +1,24 @@
 package com.flight.booking.Controller;
 
 
-import com.flight.booking.Model.FlightSearch;
-import com.flight.booking.Model.FlightWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flight.booking.Model.*;
 import com.flight.booking.Service.AmadeusAPI;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
-@RestController  // Converts it into a REST API
-@RequestMapping("/tomartravels")  // Base URL for all endpoints
+@RestController
+@RequestMapping("/tomartravels")
 public class FlightController {
 
 
@@ -50,29 +54,64 @@ public class FlightController {
     }
 
     @PostMapping("/booking")
-    @ResponseBody  // Ensures response is sent as plain text
-    public String bookFlight(@RequestBody Map<String, Object> request) {
+    @ResponseBody
+    public ResponseEntity<?> bookFlight(@RequestBody Map<String, Object> request) {
         String response = request.get("responseBody").toString();
         String price = request.get("beforePrice").toString();
 
         if (response == null || price == null) {
-            return "Error: Missing parameters";
+            return ResponseEntity.badRequest().body("Error: Missing parameters");
         }
         String repriceResponse;
         
         try {
             repriceResponse = api.repriceFlights(response);
         } catch (Exception e) {
-            return "Error: " + e.getMessage();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
         }
 
         boolean reprice = api.isPriceUnchanged(repriceResponse, price);
         
         if (!reprice) {
-            return "repriceFlights";  // AJAX will redirect to reprice page
+            return ResponseEntity.ok(Collections.singletonMap("status", "repriceFlights"));  // AJAX will redirect to reprice page
         } else {
-            return "bookFlights";  // AJAX will proceed to booking
+            return ResponseEntity.ok(Map.of(
+                    "status", "bookFlights",
+                    "repriceResponse", repriceResponse
+            ));
         }
+    }
+
+    @PostMapping("/bookTraveller")
+    public ResponseEntity<String> createOrder(@RequestBody String requestData) {
+        String reqBody = "null";
+        String resBody = "null";
+        System.out.println(("RequestData parsed : " + requestData));
+
+        try {
+            JSONObject jsonObject = new JSONObject(requestData);
+            reqBody = api.orderReqBody(requestData.toString());
+            System.out.println("create order request: " + reqBody);
+
+            try {
+                resBody = api.bookFlight(reqBody);
+                System.out.println("create order response body: " + resBody);
+
+            } catch (Exception e) {
+                resBody = e.getMessage();
+                System.out.println("create order response error: " + resBody);
+            }
+        } catch (Exception e) {
+            resBody = e.getMessage();
+            System.out.println("create order response error: " + resBody);
+        }
+
+        if (!new JSONObject(resBody).has("data")) {
+            System.out.println("create order response error: " + resBody);
+            return ResponseEntity.badRequest().body(resBody);
+        }
+
+        return ResponseEntity.ok(resBody);
     }
 
 }
